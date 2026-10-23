@@ -1,96 +1,199 @@
 <!DOCTYPE html>
-<html>
-  <head>
-    <meta charset="utf-8" />
-    <title>Historieta AR - Sector 72</title>
-    <!-- Librerías base para Realidad Aumentada -->
-    <script src="https://aframe.io/releases/1.3.0/aframe.min.js"></script>
-    <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar-nft.js"></script>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Historieta AR - Sector 72</title>
 
-    <style>
-      /* Diseño de la pantalla de carga inicial */
-      .arjs-loader {
-        height: 100%; width: 100%; position: absolute; top: 0; left: 0;
-        background-color: rgba(0, 0, 0, 0.9); z-index: 9999;
-        display: flex; justify-content: center; align-items: center; flex-direction: column;
-        font-family: sans-serif;
-      }
-      .arjs-loader div { color: white; font-size: 1.2em; margin-bottom: 20px; text-align: center; }
-      #start-btn {
-        padding: 12px 24px; font-size: 1.2em; background-color: #a32cc4; color: white;
-        border: none; border-radius: 8px; cursor: pointer; font-weight: bold;
-      }
-    </style>
+  <!-- A-Frame y AR.js NFT -->
+  <script src="https://aframe.io/releases/1.3.0/aframe.min.js"></script>
+  <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar-nft.js"></script>
 
-    <script>
-      // Componente inteligente: Reproduce el video solo cuando la cámara ve el dibujo
-      AFRAME.registerComponent('vidhandler', {
-        schema: { video: { type: 'string' } },
-        init: function () {
-          this.vid = document.querySelector(this.data.video);
-          this.toggle = false;
-        },
-        tick: function () {
-          if (this.el.object3D.visible == true) {
-            if (!this.toggle) {
-              this.toggle = true;
-              this.vid.play();
-            }
-          } else {
-            if (this.toggle) {
-              this.toggle = false;
-              this.vid.pause();
-            }
-          }
+  <style>
+    html, body {
+      margin: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      font-family: Arial, sans-serif;
+      background: #000;
+    }
+
+    .arjs-loader {
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      gap: 18px;
+      padding: 24px;
+      box-sizing: border-box;
+      background: rgba(0, 0, 0, 0.9);
+      color: #fff;
+      text-align: center;
+    }
+
+    #start-btn {
+      padding: 12px 24px;
+      border: 0;
+      border-radius: 8px;
+      background: #a32cc4;
+      color: #fff;
+      font-size: 1.05rem;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    #estado-ar {
+      position: fixed;
+      left: 10px;
+      right: 10px;
+      bottom: 10px;
+      z-index: 10;
+      padding: 8px 10px;
+      border-radius: 6px;
+      background: rgba(0, 0, 0, 0.65);
+      color: white;
+      font-size: 14px;
+      pointer-events: none;
+    }
+  </style>
+
+  <script>
+    // Reproduce el video cuando AR.js detecta el marcador NFT.
+    AFRAME.registerComponent('vidhandler', {
+      schema: {
+        video: { type: 'string' }
+      },
+
+      init: function () {
+        this.video = document.querySelector(this.data.video);
+        this.estado = document.getElementById('estado-ar');
+
+        if (!this.video) {
+          console.error('No se encontró el video:', this.data.video);
+          return;
         }
-      });
 
-      // Ocultar pantalla de carga al hacer clic en Comenzar
-      document.addEventListener("DOMContentLoaded", function() {
-        document.getElementById("start-btn").addEventListener("click", function() {
-          document.querySelector(".arjs-loader").style.display = "none";
+        this.el.addEventListener('markerFound', () => {
+          console.log('MARCADOR NFT DETECTADO');
+          if (this.estado) this.estado.textContent = 'Viñeta detectada. Reproduciendo video…';
+
+          this.video.currentTime = 0;
+          this.video.play().catch((error) => {
+            console.error('No se pudo reproducir el video:', error);
+            if (this.estado) {
+              this.estado.textContent = 'Viñeta detectada, pero hubo un error al reproducir el video.';
+            }
+          });
         });
+
+        this.el.addEventListener('markerLost', () => {
+          console.log('MARCADOR NFT PERDIDO');
+          this.video.pause();
+          if (this.estado) this.estado.textContent = 'Marcador perdido. Enfoca nuevamente la viñeta.';
+        });
+      }
+    });
+
+    window.addEventListener('arjs-nft-loaded', function () {
+      console.log('AR.js: evento arjs-nft-loaded recibido.');
+    });
+
+    window.addEventListener('camera-init', function () {
+      console.log('AR.js: cámara inicializada.');
+      const estado = document.getElementById('estado-ar');
+      if (estado) estado.textContent = 'Cámara activa. Enfoca la viñeta 1.';
+    });
+
+    window.addEventListener('camera-error', function (event) {
+      console.error('AR.js: error de cámara:', event);
+      const estado = document.getElementById('estado-ar');
+      if (estado) estado.textContent = 'No se pudo iniciar la cámara. Revisa los permisos del navegador.';
+    });
+
+    window.addEventListener('error', function (event) {
+      console.error('Error JavaScript:', event.message, event.filename, event.lineno);
+    });
+
+    document.addEventListener('DOMContentLoaded', function () {
+      const boton = document.getElementById('start-btn');
+      const cargador = document.querySelector('.arjs-loader');
+      const estado = document.getElementById('estado-ar');
+
+      boton.addEventListener('click', function () {
+        cargador.style.display = 'none';
+        if (estado) estado.textContent = 'Cámara iniciándose. Espera y enfoca la viñeta 1.';
       });
-    </script>
-  </head>
 
-  <body style="margin: 0; overflow: hidden;">
-    
-    <div class="arjs-loader">
-      <div>Iniciando Escáner Óptico...</div>
-      <button id="start-btn">Comenzar Experiencia</button>
-    </div>
+      const video = document.getElementById('vid-pag1');
+      video.addEventListener('error', function () {
+        console.error('Error cargando assets/video-pag1.mp4', video.error);
+        if (estado) estado.textContent = 'No se pudo cargar el video. Comprueba la ruta assets/video-pag1.mp4.';
+      });
+    });
+  </script>
+</head>
 
-    <!-- Escena AR.js -->
-    <a-scene
-      vr-mode-ui="enabled: false;"
-      renderer="logarithmicDepthBuffer: true; antialias: true;"
-      embedded
-      arjs="trackingMethod: best; sourceType: webcam; debugUIEnabled: false;">
-      
-      <a-assets>
-        <!-- Precarga del video de la Página 1 -->
-        <video id="vid-pag1" src="assets/video-pag1.mp4" preload="auto" loop muted playsinline webkit-playsinline></video>
-      </a-assets>
+<body>
+  <div class="arjs-loader">
+    <div>Historieta interactiva con realidad aumentada</div>
+    <div>Permite el acceso a la cámara y enfoca la viñeta 1.</div>
+    <button id="start-btn" type="button">Comenzar experiencia</button>
+  </div>
 
-      <!-- Rastreador de la imagen (Busca los archivos en /marcadores/pagina1) -->
-      <a-nft
-        type="nft"
-        url="marcadores/pagina1"
-        smooth="true" smoothCount="10" smoothTolerance=".01" smoothThreshold="5"
-        vidhandler="video: #vid-pag1">
-        
-        <!-- Video proyectado. rotation="-90 0 0" lo acuesta paralelo al papel -->
-        <a-video 
-          src="#vid-pag1" 
-          position="0 0 0" 
-          rotation="-90 0 0" 
-          width="100" 
-          height="150">
-        </a-video>
-      </a-nft>
+  <div id="estado-ar">Preparando la cámara y los marcadores…</div>
 
-      <a-entity camera></a-entity>
-    </a-scene>
-  </body>
+  <a-scene
+    vr-mode-ui="enabled: false"
+    renderer="logarithmicDepthBuffer: true; antialias: true"
+    embedded
+    loading-screen="enabled: false"
+    arjs="trackingMethod: best; sourceType: webcam; debugUIEnabled: false;">
+
+    <a-assets>
+      <video
+        id="vid-pag1"
+        src="assets/video-pag1.mp4"
+        preload="auto"
+        loop
+        muted
+        playsinline
+        webkit-playsinline>
+      </video>
+    </a-assets>
+
+    <!--
+      Deben existir estos tres archivos, con el mismo prefijo:
+      marcadores/pagina1.fset
+      marcadores/pagina1.fset3
+      marcadores/pagina1.iset
+      La propiedad url se indica sin la extensión.
+    -->
+    <a-nft
+      id="marcador-pagina1"
+      type="nft"
+      url="marcadores/pagina1"
+      smooth="true"
+      smoothCount="10"
+      smoothTolerance="0.01"
+      smoothThreshold="5"
+      vidhandler="video: #vid-pag1">
+
+      <!-- Conserva la proporción 2:3 del tamaño que tenía el video original. -->
+      <a-video
+        src="#vid-pag1"
+        position="0 0 0"
+        rotation="-90 0 0"
+        width="1"
+        height="1.5">
+      </a-video>
+    </a-nft>
+
+    <a-entity camera></a-entity>
+  </a-scene>
+</body>
 </html>
+
