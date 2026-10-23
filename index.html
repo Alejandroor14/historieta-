@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Historieta AR - Sector 72</title>
+    <!-- Librerías base para Realidad Aumentada -->
+    <script src="https://aframe.io/releases/1.3.0/aframe.min.js"></script>
+    <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar-nft.js"></script>
+
+    <style>
+      /* Diseño de la pantalla de carga inicial */
+      .arjs-loader {
+        height: 100%; width: 100%; position: absolute; top: 0; left: 0;
+        background-color: rgba(0, 0, 0, 0.9); z-index: 9999;
+        display: flex; justify-content: center; align-items: center; flex-direction: column;
+        font-family: sans-serif;
+      }
+      .arjs-loader div { color: white; font-size: 1.2em; margin-bottom: 20px; text-align: center; }
+      #start-btn {
+        padding: 12px 24px; font-size: 1.2em; background-color: #a32cc4; color: white;
+        border: none; border-radius: 8px; cursor: pointer; font-weight: bold;
+      }
+    </style>
+
+    <script>
+      // Componente inteligente: Reproduce el video solo cuando la cámara ve el dibujo
+      AFRAME.registerComponent('vidhandler', {
+        schema: { video: { type: 'string' } },
+        init: function () {
+          this.vid = document.querySelector(this.data.video);
+          this.toggle = false;
+        },
+        tick: function () {
+          if (this.el.object3D.visible == true) {
+            if (!this.toggle) {
+              this.toggle = true;
+              this.vid.play();
+            }
+          } else {
+            if (this.toggle) {
+              this.toggle = false;
+              this.vid.pause();
+            }
+          }
+        }
+      });
+
+      // Ocultar pantalla de carga al hacer clic en Comenzar
+      document.addEventListener("DOMContentLoaded", function() {
+        document.getElementById("start-btn").addEventListener("click", function() {
+          document.querySelector(".arjs-loader").style.display = "none";
+        });
+      });
+    </script>
+  </head>
+
+  <body style="margin: 0; overflow: hidden;">
+    
+    <div class="arjs-loader">
+      <div>Iniciando Escáner Óptico...</div>
+      <button id="start-btn">Comenzar Experiencia</button>
+    </div>
+
+    <!-- Escena AR.js -->
+    <a-scene
+      vr-mode-ui="enabled: false;"
+      renderer="logarithmicDepthBuffer: true; antialias: true;"
+      embedded
+      arjs="trackingMethod: best; sourceType: webcam; debugUIEnabled: false;">
+      
+      <a-assets>
+        <!-- Precarga del video de la Página 1 -->
+        <video id="vid-pag1" src="assets/video-pag1.mp4" preload="auto" loop muted playsinline webkit-playsinline></video>
+      </a-assets>
+
+      <!-- Rastreador de la imagen (Busca los archivos en /marcadores/pagina1) -->
+      <a-nft
+        type="nft"
+        url="marcadores/pagina1"
+        smooth="true" smoothCount="10" smoothTolerance=".01" smoothThreshold="5"
+        vidhandler="video: #vid-pag1">
+        
+        <!-- Video proyectado. rotation="-90 0 0" lo acuesta paralelo al papel -->
+        <a-video 
+          src="#vid-pag1" 
+          position="0 0 0" 
+          rotation="-90 0 0" 
+          width="100" 
+          height="150">
+        </a-video>
+      </a-nft>
+
+      <a-entity camera></a-entity>
+    </a-scene>
+  </body>
+</html>
